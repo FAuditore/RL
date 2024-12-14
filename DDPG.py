@@ -116,7 +116,7 @@ class DDPG:
     """
 
     def __init__(self, state_dim, action_dim, action_bound,
-                 actor_lr, critic_lr, weight_decay, noise, tau, gamma, device):
+                 actor_lr, critic_lr, weight_decay, noise, tau, gamma, device, initial_random_steps):
         self.actor = PolicyNet(state_dim, action_dim, action_bound).to(device)
         self.critic = ValueNet(state_dim, action_dim).to(device)
         self.target_actor = PolicyNet(state_dim, action_dim, action_bound).to(device)
@@ -132,10 +132,11 @@ class DDPG:
         self.tau = tau  # 目标网络软更新参数
         self.action_dim = action_dim
         self.device = device
+        self.initial_random_steps = initial_random_steps
         self.total_step = 0
 
     def take_action(self, state, eval=False):
-        if self.total_step <= initial_random_steps and not eval:
+        if self.total_step < self.initial_random_steps and not eval:
             action = env.action_space.sample()
         else:
             state = torch.FloatTensor([state]).to(self.device)
@@ -173,7 +174,7 @@ class DDPG:
         for param_target, param in zip(target_net.parameters(), net.parameters()):
             param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
-    def save(self, folder='results'):
+    def save(self, folder='models'):
         torch.save(self.actor.state_dict(), folder + "/ddpg_actor")
         torch.save(self.critic.state_dict(), folder + "/ddpg_critic")
 
@@ -218,7 +219,7 @@ noise = GaussianNoise(action_dim, mu=0, sigma=0.1, scale=action_bound)
 replay_buffer = utils.ReplayBuffer(buffer_size)
 agent = DDPG(state_dim, action_dim, action_bound,
              actor_lr, critic_lr, weight_decay,
-             noise, tau, gamma, device)
+             noise, tau, gamma, device, initial_random_steps)
 
 if __name__ == '__main__':
     print(env_name)

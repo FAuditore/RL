@@ -46,12 +46,12 @@ class QValueNetContinuous(nn.Module):
         return self.fc_out(x)
 
 
-class SACContinuous:
+class SAC:
     ''' 处理连续动作的SAC算法 '''
 
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound,
                  actor_lr, critic_lr, alpha_lr, target_entropy, tau, gamma,
-                 device):
+                 device, initial_random_steps):
         self.actor = PolicyNetContinuous(state_dim, hidden_dim, action_dim,
                                          action_bound).to(device)  # 策略网络
         self.critic1 = QValueNetContinuous(state_dim, hidden_dim,
@@ -83,10 +83,11 @@ class SACContinuous:
         self.gamma = gamma
         self.tau = tau
         self.device = device
+        self.initial_random_steps = initial_random_steps
         self.total_step = 0
 
     def take_action(self, state, eval=False):
-        if self.total_step <= initial_random_steps and not eval:
+        if self.total_step < self.initial_random_steps and not eval:
             action = env.action_space.sample()
         else:
             state = torch.FloatTensor([state]).to(self.device)
@@ -150,7 +151,7 @@ class SACContinuous:
         for param_target, param in zip(target_net.parameters(), net.parameters()):
             param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
-    def save(self, folder='results'):
+    def save(self, folder='models'):
         torch.save(self.actor.state_dict(), folder + "/sac_actor")
         torch.save(self.critic1.state_dict(), folder + "/sac_critic1")
         torch.save(self.critic2.state_dict(), folder + "/sac_critic2")
@@ -191,9 +192,9 @@ action_bound = env.action_space.high[0]  # 动作最大值
 target_entropy = -action_dim
 
 replay_buffer = utils.ReplayBuffer(buffer_size)
-agent = SACContinuous(state_dim, hidden_dim, action_dim, action_bound,
+agent = SAC(state_dim, hidden_dim, action_dim, action_bound,
                       actor_lr, critic_lr, alpha_lr, target_entropy, tau,
-                      gamma, device)
+                      gamma, device, initial_random_steps)
 
 if __name__ == '__main__':
     print(env_name)

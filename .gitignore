@@ -47,3 +47,4 @@ ghostdriver.log
 /models
 /results
 main.py
+debug.py

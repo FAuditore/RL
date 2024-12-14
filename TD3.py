@@ -104,7 +104,7 @@ class TD3:
         self.total_step = 0  # env step
 
     def take_action(self, state, eval=False):
-        if self.total_step <= initial_random_steps and not eval:
+        if self.total_step < self.initial_random_steps and not eval:
             action = env.action_space.sample()
         else:
             state = torch.FloatTensor([state]).to(self.device)
@@ -166,7 +166,7 @@ class TD3:
         for param_target, param in zip(target_net.parameters(), net.parameters()):
             param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
-    def save(self, folder='results'):
+    def save(self, folder='models'):
         torch.save(self.actor.state_dict(), folder + "/td3_actor")
         torch.save(self.critic1.state_dict(), folder + "/td3_critic1")
         torch.save(self.critic2.state_dict(), folder + "/td3_critic2")

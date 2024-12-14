@@ -67,7 +67,7 @@ class MADDPG:
 
         print({key: value for key, value in locals().items() if key not in ['self']})
 
-    def take_actions(self, observations, eval=False):
+    def take_action(self, observations, eval=False):
         # observations:dict{agent_0:state,agent_1:state,...}
         if self.total_step < self.initial_random_steps and not eval:
             actions = {agent: self.env.action_space(agent).sample() for agent in self.env.agents}
@@ -156,6 +156,32 @@ class MADDPG:
         torch.save([a.state_dict() for a in self.actors], folder + "/maddpg_actors")
         torch.save([c.state_dict() for c in self.critics], folder + "/maddpg_critics")
 
+    def load(self, folder='models'):
+        actor_state_dicts = torch.load(folder + '/maddpg_actors', map_location='cpu')
+        critic_state_dicts = torch.load(folder + '/maddpg_critics', map_location='cpu')
+        for a, sd, c, cd in zip(self.actors, actor_state_dicts,
+                                self.critics, critic_state_dicts):
+            a.load_state_dict(sd)
+            c.load_state_dict(cd)
+
+
+def evaluate(agent, eval_env, eval_episodes=10):
+    avg_reward = 0.
+    for episode in range(eval_episodes):
+        state, info = eval_env.reset()
+        while eval_env.agents:
+            action = agent.take_action(state, eval=True)
+            state, reward, done, truncated, info = eval_env.step(action)
+            avg_reward += sum(rewards.values()) / agent.n_agents
+
+    avg_reward /= eval_episodes
+
+    print("---------------------------------------")
+    print(f"Evaluation over {eval_episodes} episodes\n"
+          f"Avg_reward: {avg_reward:.3f}\n")
+    print("---------------------------------------")
+    return avg_reward
+
 
 random.seed(0)
 np.random.seed(0)
@@ -164,8 +190,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 actor_lr = 1e-2
 critic_lr = 1e-2
-num_episodes = 50000
-hidden_dim = 64
+num_episodes = 25000
+hidden_dim = 128
 gamma = 0.95
 tau = 1e-2
 buffer_size = 1e6
@@ -175,9 +201,9 @@ batch_size = 64
 update_interval = 100
 save_model = True
 
-from pettingzoo.mpe import simple_spread_v3
+from pettingzoo.mpe import simple_v3
 
-env = simple_spread_v3.parallel_env(N=3, max_cycles=25, continuous_actions=False)
+env = simple_v3.parallel_env(N=2, max_cycles=25, continuous_actions=False)
 
 n_agents = env.max_num_agents
 observation_dims = []
@@ -195,6 +221,7 @@ agent = MADDPG(env, n_agents, observation_dims, action_dims, critic_input_dim,
 
 if __name__ == '__main__':
     return_list = []
+    eval_list = []
     total_step = 0
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
@@ -203,7 +230,7 @@ if __name__ == '__main__':
                 episode_return = 0
                 obs, info = env.reset()
                 while env.agents:
-                    actions = agent.take_actions(obs, eval=False)
+                    actions = agent.take_action(obs, eval=False)
                     next_obs, rewards, done, truncated, info = env.step(actions)
                     replay_buffer.add(
                         [o for o in obs.values()],
@@ -229,7 +256,11 @@ if __name__ == '__main__':
                     pbar.set_postfix({'total_step': '%d' % total_step,
                                       'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
+                if (i_episode + 1) % 100 == 0:
+                    eval_list.append(evaluate(agent, env, eval_episodes=10))
                 pbar.update(1)
             if save_model: agent.save()
     utils.dump('./results/maddpg_d.pkl', return_list)
     utils.show('./results/maddpg_d.pkl', 'maddpg')
+    utils.dump('./results/maddpg_d_eval.pkl', eval_list)
+    utils.show('./results/maddpg_d_eval.pkl', 'maddpg_eval')

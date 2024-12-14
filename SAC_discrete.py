@@ -1,4 +1,3 @@
-import math
 import random
 
 import gymnasium as gym
@@ -36,7 +35,7 @@ class SAC:
     ''' 处理离散动作的SAC算法 '''
 
     def __init__(self, state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
-                 alpha_lr, target_entropy, tau, gamma, device):
+                 alpha_lr, target_entropy, tau, gamma, device, initial_random_steps):
         # 策略网络
         self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
         self.critic1 = ValueNet(state_dim, hidden_dim, action_dim).to(device)
@@ -63,10 +62,11 @@ class SAC:
         self.gamma = gamma
         self.tau = tau
         self.device = device
+        self.initial_random_steps = initial_random_steps
         self.total_step = 0
 
     def take_action(self, state, eval=False):
-        if self.total_step <= initial_random_steps and not eval:
+        if self.total_step < self.initial_random_steps and not eval:
             action = env.action_space.sample()
         else:
             state = torch.FloatTensor([state]).to(self.device)
@@ -142,7 +142,7 @@ class SAC:
         for param_target, param in zip(target_net.parameters(), net.parameters()):
             param_target.data.copy_(param_target.data * (1.0 - self.tau) + param.data * self.tau)
 
-    def save(self, folder='results'):
+    def save(self, folder='models'):
         torch.save(self.actor.state_dict(), folder + "/sac_d_actor")
         torch.save(self.critic1.state_dict(), folder + "/sac_d_critic1")
         torch.save(self.critic2.state_dict(), folder + "/sac_d_critic2")
@@ -182,7 +182,7 @@ action_dim = env.action_space.n
 target_entropy = -action_dim
 
 agent = SAC(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, alpha_lr,
-            target_entropy, tau, gamma, device)
+            target_entropy, tau, gamma, device, initial_random_steps)
 
 replay_buffer = utils.ReplayBuffer(buffer_size)
 if __name__ == '__main__':
