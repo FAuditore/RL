@@ -107,10 +107,9 @@ class MADDPG:
             qs_target = [rewards[:, i].unsqueeze(1) +
                          self.gamma * (1 - dones) * next_qs[i] for i in range(self.n_agents)]
 
-        one_hot_actions = torch.cat(
-            [F.one_hot(actions[:, i], num_classes=self.action_dims[i]) for i in range(self.n_agents)], dim=1)
+        one_hot_actions = [F.one_hot(actions[:, i], num_classes=self.action_dims[i]) for i in range(self.n_agents)]
         critic_input = torch.cat(
-            [states.view(-1, sum(self.observation_dims)), one_hot_actions], dim=1)
+            [states.view(-1, sum(self.observation_dims)), *one_hot_actions], dim=1)
         qs = [c(critic_input) for c in self.critics]
 
         for i, co in enumerate(self.critic_optimizers):
@@ -122,8 +121,8 @@ class MADDPG:
 
         qs = []
         logits = [a(states[:, i]) for i, a in enumerate(self.actors)]
-        one_hot_actions = [F.one_hot(logit.argmax(dim=1), num_classes=self.action_dims[i]).detach()
-                           for i, logit in enumerate(logits)]
+        # one_hot_actions = [F.one_hot(logit.argmax(dim=1), num_classes=self.action_dims[i]).detach()
+        #                    for i, logit in enumerate(logits)]
         gumbel_actions = [F.gumbel_softmax(logit, hard=True)
                           for i, logit in enumerate(logits)]
         for i_agent in range(self.n_agents):
@@ -132,7 +131,7 @@ class MADDPG:
                 if i == i_agent:
                     all_actions.append(gumbel_actions[i])
                 else:
-                    all_actions.append(one_hot_actions[i])
+                    all_actions.append(one_hot_actions[i])  # other agents' action do not change
             critic_input = torch.cat(
                 [states.view(-1, sum(self.observation_dims)), *all_actions], dim=1)
             qs.append(self.critics[i_agent](critic_input))
@@ -176,10 +175,8 @@ def evaluate(agent, eval_env, eval_episodes=10):
 
     avg_reward /= eval_episodes
 
-    print("---------------------------------------")
-    print(f"Evaluation over {eval_episodes} episodes\n"
-          f"Avg_reward: {avg_reward:.3f}\n")
-    print("---------------------------------------")
+    print(f"Evaluation over {eval_episodes} episodes,"
+          f"Avg_reward: {avg_reward:.3f}")
     return avg_reward
 
 
@@ -201,9 +198,9 @@ batch_size = 64
 update_interval = 100
 save_model = True
 
-from pettingzoo.mpe import simple_v3
+from pettingzoo.mpe import simple_spread_v3
 
-env = simple_v3.parallel_env(N=2, max_cycles=25, continuous_actions=False)
+env = simple_spread_v3.parallel_env(max_cycles=25, continuous_actions=False)
 
 n_agents = env.max_num_agents
 observation_dims = []
