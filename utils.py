@@ -11,11 +11,6 @@ from tqdm import tqdm
 from segment_tree import SumSegmentTree, MinSegmentTree
 
 
-def dump(file, data):
-    with open(file, 'wb') as f:
-        pickle.dump(data, f)
-
-
 def timeit(func):
     @wraps(func)
     def timed(*args, **kwargs):
@@ -173,11 +168,13 @@ def train_on_policy_agent(env, agent, num_episodes, save_model=False):
                 while not done and not truncated:
                     action = agent.take_action(state, eval=False)
                     next_state, reward, done, truncated, _ = env.step(action)
+
                     transition_dict['states'].append(state)
                     transition_dict['actions'].append(action)
                     transition_dict['next_states'].append(next_state)
                     transition_dict['rewards'].append(reward)
                     transition_dict['dones'].append(done or truncated)
+
                     state = next_state
                     episode_return += reward
                     total_step += 1
@@ -205,17 +202,17 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                 while not done and not truncated:
                     action = agent.take_action(state, eval=False)
                     next_state, reward, done, truncated, _ = env.step(action)
+
                     replay_buffer.add(state, action, reward, next_state, done or truncated)
+                    if replay_buffer.size() > minimal_size and total_step % update_interval == 0:
+                        b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns,
+                                           'rewards': b_r, 'dones': b_d}
+                        agent.update(transition_dict)
 
                     state = next_state
                     episode_return += reward
                     total_step += 1
-
-                    if replay_buffer.size() > minimal_size and total_step % update_interval == 0:
-                        b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
-                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
-                                           'dones': b_d}
-                        agent.update(transition_dict)
                 return_list.append(episode_return)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'total_step': '%d' % total_step,
@@ -265,6 +262,11 @@ def visualization(agent, env_name, num_episodes=10):
     env.close()
 
 
+def dump(file, data):
+    with open(file, 'wb') as f:
+        pickle.dump(data, f)
+
+
 def moving_average(a, window_size):
     return np.array([np.mean(a[i:i + window_size]) for i in range(len(a) - window_size + 1)])
 
@@ -281,32 +283,35 @@ def moving_min(a, window_size):
     return np.array([np.min(a[i:i + window_size]) for i in range(len(a) - window_size + 1)])
 
 
-def show(file, title=None, x_label='Episodes', y_label='Rewards', window_size=9):
-    with open(file, 'rb') as f:
-        data_list = pickle.load(f)
+def show(data, title=None, x_label='Episodes', y_label='Rewards', window_size=9):
+    if isinstance(data, str):
+        with open(data, 'rb') as f:
+            data_list = pickle.load(f)
+    else:
+        data_list = data
 
-        rolling_mean = moving_average(data_list, window_size)
-        rolling_max = moving_max(data_list, window_size)
-        rolling_min = moving_min(data_list, window_size)
-        # rolling_std = moving_std(data_list, window_size)
-        x = np.arange(window_size - 1, len(data_list))
+    rolling_mean = moving_average(data_list, window_size)
+    rolling_max = moving_max(data_list, window_size)
+    rolling_min = moving_min(data_list, window_size)
+    # rolling_std = moving_std(data_list, window_size)
+    x = np.arange(window_size - 1, len(data_list))
 
-        plt.plot(x,
-                 rolling_mean,
-                 label='Rolling Mean',
-                 color='black')
+    plt.plot(x,
+             rolling_mean,
+             label='Rolling Mean',
+             color='black')
 
-        plt.fill_between(x,
-                         rolling_min,
-                         rolling_max,
-                         alpha=0.3,
-                         label='Rolling Min Max')
+    plt.fill_between(x,
+                     rolling_min,
+                     rolling_max,
+                     alpha=0.3,
+                     label='Rolling Min Max')
 
-        plt.legend()
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.title(title)
-        plt.show()
+    plt.legend()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.show()
 
 
 def compare(*files, title='compare', window_size=9):

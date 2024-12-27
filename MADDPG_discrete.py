@@ -229,16 +229,13 @@ if __name__ == '__main__':
                 while env.agents:
                     actions = agent.take_action(obs, eval=False)
                     next_obs, rewards, done, truncated, info = env.step(actions)
+                    
                     replay_buffer.add(
                         [o for o in obs.values()],
                         [a for a in actions.values()],
                         [r for r in rewards.values()],
                         [no for no in next_obs.values()],
                         True in done.values() or True in truncated.values())
-
-                    episode_return += sum(rewards.values()) / n_agents
-                    total_step += 1
-
                     if replay_buffer.size() > minimal_size and total_step % update_interval == 0:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s,
@@ -248,6 +245,8 @@ if __name__ == '__main__':
                                            'dones': b_d}
                         agent.update(transition_dict)
 
+                    episode_return += sum(rewards.values()) / n_agents
+                    total_step += 1
                 return_list.append(episode_return)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'total_step': '%d' % total_step,
