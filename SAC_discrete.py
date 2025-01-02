@@ -161,6 +161,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name='SAC_D'
 actor_lr = 3e-4
 critic_lr = 3e-4
 alpha_lr = 3e-4
@@ -192,5 +193,5 @@ if __name__ == '__main__':
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump('./results/sac_d.pkl', return_list)
-    utils.show('./results/sac_d.pkl', 'sac')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

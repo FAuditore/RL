@@ -139,6 +139,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'MultiStepDQN'
 lr = 1e-3
 num_episodes = 1000
 hidden_dim = 128
@@ -182,13 +183,13 @@ if __name__ == '__main__':
                     if replay_buffer.size() > minimal_size and total_step % update_interval == 0:
                         batch_data = replay_buffer.sample(batch_size)
                         b_s, b_a, b_r, b_ns, b_d, b_g = get_n_step_data(batch_data, gamma, n_step)
-                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r,
-                                           'dones': b_d, 'gammas': b_g}
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns,
+                                           'rewards': b_r, 'dones': b_d, 'gammas': b_g}
                         agent.update(transition_dict)
                 return_list.append(episode_return)
                 if (i_episode + 1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
-    utils.dump('./results/multi_step.pkl', return_list)
-    utils.show('./results/multi_step.pkl', 'multi_step')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

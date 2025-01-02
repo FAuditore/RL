@@ -91,6 +91,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'PER'
 lr = 1e-3
 num_episodes = 1000
 hidden_dim = 128
@@ -148,5 +149,5 @@ if __name__ == '__main__':
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
-    utils.dump('./results/per.pkl', return_list)
-    utils.show('./results/per.pkl', 'per')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

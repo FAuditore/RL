@@ -121,7 +121,7 @@ class MAC:
         self.critic.load_state_dict(critic_state_dict)
 
 
-def evaluate(agent, eval_env, eval_episodes=10):
+def evaluate(agent, eval_env, eval_episodes=20):
     avg_reward = 0.
     won = 0.
     for episode in range(eval_episodes):
@@ -148,6 +148,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'MAC'
 actor_lr = 1e-3
 critic_lr = 1e-3
 num_episodes = 10000
@@ -159,7 +160,7 @@ save_model = True
 # 星际争霸2 -- SMAC 环境介绍 https://zhuanlan.zhihu.com/p/595500237
 from smac.env import StarCraft2Env
 
-env = StarCraft2Env(map_name="2s3z", seed=0, obs_instead_of_state=True)
+env = StarCraft2Env(map_name="3m", seed=0, obs_instead_of_state=True)
 env_info = env.get_env_info()
 print('env_info: ', env_info)
 
@@ -215,8 +216,9 @@ if __name__ == '__main__':
                     win_list.append(win_rate)
                 pbar.update(1)
             if save_model: agent.save()
-    utils.dump('./results/mac.pkl', return_list)
-    utils.show('./results/mac.pkl', 'mac')
-    utils.dump('./results/mac_eval.pkl', eval_list)
-    utils.show('./results/mac_eval.pkl', 'mac_eval')
-    utils.show(win_list)
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'./results/{alg_name}_eval.pkl', eval_list)
+    utils.show(f'./results/{alg_name}_eval.pkl', f'{alg_name} eval')
+    utils.dump(f'./results/{alg_name}_win.pkl', win_list)
+    utils.show(f'./results/{alg_name}_win.pkl', f'{alg_name} win rate')

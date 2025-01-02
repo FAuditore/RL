@@ -106,6 +106,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'PPO'
 actor_lr = 3e-4
 critic_lr = 3e-4
 num_episodes = 1000
@@ -125,5 +126,5 @@ agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, gae_lambda,
 if __name__ == '__main__':
     print(env_name)
     return_list = utils.train_on_policy_agent(env, agent, num_episodes)
-    utils.dump('./results/ppo.pkl', return_list)
-    utils.show('./results/ppo.pkl', 'ppo')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

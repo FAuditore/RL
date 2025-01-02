@@ -170,6 +170,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'SAC'
 actor_lr = 3e-4
 critic_lr = 3e-4
 alpha_lr = 3e-4
@@ -193,8 +194,8 @@ target_entropy = -action_dim
 
 replay_buffer = utils.ReplayBuffer(buffer_size)
 agent = SAC(state_dim, hidden_dim, action_dim, action_bound,
-                      actor_lr, critic_lr, alpha_lr, target_entropy, tau,
-                      gamma, device, initial_random_steps)
+            actor_lr, critic_lr, alpha_lr, target_entropy, tau,
+            gamma, device, initial_random_steps)
 
 if __name__ == '__main__':
     print(env_name)
@@ -203,5 +204,5 @@ if __name__ == '__main__':
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump('./results/sac.pkl', return_list)
-    utils.show('./results/sac.pkl', 'sac')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

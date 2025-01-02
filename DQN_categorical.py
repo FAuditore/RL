@@ -140,6 +140,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'C51'
 lr = 1e-3
 num_episodes = 1000
 hidden_dim = 128
@@ -168,5 +169,5 @@ if __name__ == '__main__':
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size,
                                                update_interval)
-    utils.dump('./results/c51.pkl', return_list)
-    utils.show('./results/c51.pkl', 'c51')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

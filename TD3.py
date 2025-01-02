@@ -184,6 +184,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'TD3'
 actor_lr = 3e-4
 critic_lr = 3e-4
 num_episodes = 5000
@@ -222,5 +223,5 @@ if __name__ == '__main__':
     return_list = utils.train_off_policy_agent(env, agent, num_episodes, replay_buffer,
                                                minimal_size, batch_size, update_interval,
                                                save_model=True)
-    utils.dump('./results/td3.pkl', return_list)
-    utils.show('./results/td3.pkl', 'td3')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)

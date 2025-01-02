@@ -68,19 +68,16 @@ class MADDPG:
         print({key: value for key, value in locals().items() if key not in ['self']})
 
     def take_action(self, observations, eval=False):
-        # observations:dict{agent_0:state,agent_1:state,...}
-        if self.total_step < self.initial_random_steps and not eval:
-            actions = {agent: self.env.action_space(agent).sample() for agent in self.env.agents}
-        else:
-            with torch.no_grad():
-                observations = [torch.FloatTensor([observations[agent]]).to(self.device) for agent in self.env.agents]
-                logits = [self.actors[i](observations[i]) for i in range(self.n_agents)]
-                if not eval:
-                    actions = {agent: F.gumbel_softmax(logits[i], hard=True).argmax().item()
-                               for i, agent in enumerate(self.env.agents)}
-                else:
-                    actions = {agent: logits[i].argmax().item()
-                               for i, agent in enumerate(self.env.agents)}
+        # observations: dict{agent_0:state,agent_1:state,...}
+        actions = {}
+        with torch.no_grad():
+            observations = [torch.FloatTensor([observations[agent]]).to(self.device) for agent in self.env.agents]
+            logits = [self.actors[i](observations[i]) for i in range(self.n_agents)]
+            actions = {agent:
+                           F.gumbel_softmax(logits[i], hard=True).argmax().item()
+                           if self.total_step < self.initial_random_steps and not eval
+                           else logits[i].argmax().item()
+                       for i, agent in enumerate(self.env.agents)}
 
         self.total_step += 1
         return actions
@@ -185,6 +182,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+alg_name = 'MADDPG'
 actor_lr = 1e-2
 critic_lr = 1e-2
 num_episodes = 25000
@@ -229,7 +227,7 @@ if __name__ == '__main__':
                 while env.agents:
                     actions = agent.take_action(obs, eval=False)
                     next_obs, rewards, done, truncated, info = env.step(actions)
-                    
+
                     replay_buffer.add(
                         [o for o in obs.values()],
                         [a for a in actions.values()],
@@ -256,7 +254,7 @@ if __name__ == '__main__':
                     eval_list.append(evaluate(agent, env, eval_episodes=10))
                 pbar.update(1)
             if save_model: agent.save()
-    utils.dump('./results/maddpg_d.pkl', return_list)
-    utils.show('./results/maddpg_d.pkl', 'maddpg')
-    utils.dump('./results/maddpg_d_eval.pkl', eval_list)
-    utils.show('./results/maddpg_d_eval.pkl', 'maddpg_eval')
+    utils.dump(f'./results/{alg_name}.pkl', return_list)
+    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'./results/{alg_name}_eval.pkl', eval_list)
+    utils.show(f'./results/{alg_name}_eval.pkl', f'{alg_name} eval')
