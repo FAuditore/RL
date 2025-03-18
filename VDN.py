@@ -1,3 +1,4 @@
+import os
 import random
 
 import numpy as np
@@ -190,9 +191,8 @@ agent = VDN(env, n_agents, observation_dim, state_dim, action_dim,
             gamma, device)
 
 if __name__ == '__main__':
-    return_list = []
-    eval_list = []
-    win_list = []
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
+    return_list, eval_list, win_rate_list = [], [], []
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
@@ -229,12 +229,12 @@ if __name__ == '__main__':
                 if (i_episode + 1) % 100 == 0:
                     eval_return, win_rate = evaluate(agent, env, eval_episodes=20)
                     eval_list.append(eval_return)
-                    win_list.append(win_rate)
+                    win_rate_list.append(win_rate)
                 pbar.update(1)
             if save_model: agent.save()
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
-    utils.dump(f'./results/{alg_name}_eval.pkl', eval_list)
-    utils.show(f'./results/{alg_name}_eval.pkl', f'{alg_name} eval')
-    utils.dump(f'./results/{alg_name}_win.pkl', win_list)
-    utils.show(f'./results/{alg_name}_win.pkl', f'{alg_name} win rate')
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.dump(f'results/{alg_name}/eval.pkl', eval_list)
+    utils.dump(f'results/{alg_name}/win_rate.pkl', win_rate_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)
+    utils.show(f'results/{alg_name}/eval.pkl', f'{alg_name} eval')
+    utils.show(f'results/{alg_name}/win_rate.pkl', f'{alg_name} win rate')

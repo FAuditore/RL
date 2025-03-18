@@ -1,3 +1,4 @@
+import os
 import random
 
 import gymnasium as gym
@@ -74,7 +75,8 @@ class SAC:
             action_dist = torch.distributions.Categorical(probs)
             action = action_dist.sample().item()
 
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return action
 
     def update(self, transition_dict):
@@ -161,7 +163,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-alg_name='SAC_D'
+alg_name = 'SAC_D'
 actor_lr = 3e-4
 critic_lr = 3e-4
 alpha_lr = 3e-4
@@ -182,16 +184,17 @@ action_dim = env.action_space.n
 # target_entropy = 0.98 * math.log(action_dim)
 target_entropy = -action_dim
 
+replay_buffer = utils.ReplayBuffer(buffer_size)
 agent = SAC(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, alpha_lr,
             target_entropy, tau, gamma, device, initial_random_steps)
 
-replay_buffer = utils.ReplayBuffer(buffer_size)
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes,
                                                replay_buffer, minimal_size,
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)

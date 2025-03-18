@@ -1,3 +1,4 @@
+import os
 import random
 
 import gymnasium as gym
@@ -93,7 +94,8 @@ class SAC:
             state = torch.FloatTensor([state]).to(self.device)
             action = self.actor(state)[0].squeeze(0).detach().cpu().numpy()
 
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return action
 
     def update(self, transition_dict):
@@ -198,11 +200,12 @@ agent = SAC(state_dim, hidden_dim, action_dim, action_bound,
             gamma, device, initial_random_steps)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes,
                                                replay_buffer, minimal_size,
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)
