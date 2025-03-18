@@ -1,3 +1,5 @@
+import math
+import os
 import random
 
 import gymnasium as gym
@@ -40,24 +42,19 @@ class SAC:
         self.actor = PolicyNet(state_dim, hidden_dim, action_dim).to(device)
         self.critic1 = ValueNet(state_dim, hidden_dim, action_dim).to(device)
         self.critic2 = ValueNet(state_dim, hidden_dim, action_dim).to(device)
-        self.target_critic1 = ValueNet(state_dim, hidden_dim,
-                                       action_dim).to(device)  # 第一个目标Q网络
-        self.target_critic2 = ValueNet(state_dim, hidden_dim,
-                                       action_dim).to(device)  # 第二个目标Q网络
+        self.target_critic1 = ValueNet(state_dim, hidden_dim, action_dim).to(device)  # 第一个目标Q网络
+        self.target_critic2 = ValueNet(state_dim, hidden_dim, action_dim).to(device)  # 第二个目标Q网络
+
         # 令目标Q网络的初始参数和Q网络一样
         self.target_critic1.load_state_dict(self.critic1.state_dict())
         self.target_critic2.load_state_dict(self.critic2.state_dict())
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
-                                                lr=actor_lr)
-        self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(),
-                                                  lr=critic_lr)
-        self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(),
-                                                  lr=critic_lr)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(), lr=critic_lr)
+        self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(), lr=critic_lr)
+
         # 使用alpha的log值,可以使训练结果比较稳定
-        self.log_alpha = torch.tensor(1, requires_grad=True,
-                                      dtype=torch.float, device=device)
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha],
-                                                    lr=alpha_lr)
+        self.log_alpha = torch.tensor(1, requires_grad=True, dtype=torch.float, device=device)
+        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=alpha_lr)
         self.target_entropy = target_entropy  # 目标熵的大小
         self.gamma = gamma
         self.tau = tau
@@ -74,7 +71,8 @@ class SAC:
             action_dist = torch.distributions.Categorical(probs)
             action = action_dist.sample().item()
 
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return action
 
     def update(self, transition_dict):
@@ -161,7 +159,7 @@ np.random.seed(0)
 torch.manual_seed(0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-alg_name='SAC_D'
+alg_name = 'SAC_D'
 actor_lr = 3e-4
 critic_lr = 3e-4
 alpha_lr = 3e-4
@@ -179,19 +177,20 @@ env_name = 'CartPole-v1'
 env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
 action_dim = env.action_space.n
-# target_entropy = 0.98 * math.log(action_dim)
-target_entropy = -action_dim
+# target_entropy = -action_dim
+target_entropy = 0.98 * math.log(action_dim)
 
+replay_buffer = utils.ReplayBuffer(buffer_size)
 agent = SAC(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, alpha_lr,
             target_entropy, tau, gamma, device, initial_random_steps)
 
-replay_buffer = utils.ReplayBuffer(buffer_size)
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes,
                                                replay_buffer, minimal_size,
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)

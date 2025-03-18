@@ -1,3 +1,4 @@
+import os
 import random
 
 import gymnasium as gym
@@ -112,7 +113,8 @@ class TD3:
             if not eval:
                 action = np.clip(action + self.exploration_noise.sample(),
                                  -self.action_bound, self.action_bound)
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return action
 
     def update(self, transition_dict):
@@ -197,9 +199,9 @@ minimal_size = 10000  # Update begin step
 batch_size = 256
 update_interval = 1
 
-env_name = 'Reacher-v5'
-env_name = 'Hopper-v5'
-env_name = 'Humanoid-v5'
+# env_name = 'Reacher-v5'
+# env_name = 'Hopper-v5'
+# env_name = 'Humanoid-v5'
 env_name = 'Walker2d-v5'
 env = gym.make(env_name)
 state_dim = env.observation_space.shape[0]
@@ -219,9 +221,10 @@ agent = TD3(state_dim, hidden_dim, action_dim, action_bound,
             exploration_noise, target_policy_noise, target_policy_noise_clip, policy_update_freq)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes, replay_buffer,
                                                minimal_size, batch_size, update_interval,
                                                save_model=True)
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)

@@ -1,4 +1,5 @@
 import collections
+import os
 import random
 
 import gymnasium as gym
@@ -161,6 +162,7 @@ agent = DQN(state_dim, hidden_dim, action_dim, lr, epsilon,
             target_update, device, n_step)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     total_step = 0
     return_list = []
@@ -191,5 +193,5 @@ if __name__ == '__main__':
                     pbar.set_postfix({'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)

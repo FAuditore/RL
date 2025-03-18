@@ -1,3 +1,4 @@
+import os
 import random
 
 import gymnasium as gym
@@ -52,33 +53,23 @@ class SAC:
     def __init__(self, state_dim, hidden_dim, action_dim, action_bound,
                  actor_lr, critic_lr, alpha_lr, target_entropy, tau, gamma,
                  device, initial_random_steps):
-        self.actor = PolicyNetContinuous(state_dim, hidden_dim, action_dim,
-                                         action_bound).to(device)  # 策略网络
-        self.critic1 = QValueNetContinuous(state_dim, hidden_dim,
-                                           action_dim).to(device)  # 第一个Q网络
-        self.critic2 = QValueNetContinuous(state_dim, hidden_dim,
-                                           action_dim).to(device)  # 第二个Q网络
-        self.target_critic1 = QValueNetContinuous(state_dim,
-                                                  hidden_dim, action_dim).to(
-            device)  # 第一个目标Q网络
-        self.target_critic2 = QValueNetContinuous(state_dim,
-                                                  hidden_dim, action_dim).to(
-            device)  # 第二个目标Q网络
+        self.actor = PolicyNetContinuous(state_dim, hidden_dim, action_dim, action_bound).to(device)  # 策略网络
+        self.critic1 = QValueNetContinuous(state_dim, hidden_dim, action_dim).to(device)  # 第一个Q网络
+        self.critic2 = QValueNetContinuous(state_dim, hidden_dim, action_dim).to(device)  # 第二个Q网络
+        self.target_critic1 = QValueNetContinuous(state_dim, hidden_dim, action_dim).to(device)  # 第一个目标Q网络
+        self.target_critic2 = QValueNetContinuous(state_dim, hidden_dim, action_dim).to(device)  # 第二个目标Q网络
+
         # 令目标Q网络的初始参数和Q网络一样
         self.target_critic1.load_state_dict(self.critic1.state_dict())
         self.target_critic2.load_state_dict(self.critic2.state_dict())
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
-                                                lr=actor_lr)
-        self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(),
-                                                  lr=critic_lr)
-        self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(),
-                                                  lr=critic_lr)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=actor_lr)
+        self.critic1_optimizer = torch.optim.Adam(self.critic1.parameters(), lr=critic_lr)
+        self.critic2_optimizer = torch.optim.Adam(self.critic2.parameters(), lr=critic_lr)
+
         # automatic entropy tuning
         # 使用alpha的log值,可以使训练结果比较稳定
-        self.log_alpha = torch.tensor(1, requires_grad=True,
-                                      dtype=torch.float, device=device)
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha],
-                                                    lr=alpha_lr)
+        self.log_alpha = torch.tensor(1, requires_grad=True, dtype=torch.float, device=device)
+        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=alpha_lr)
         self.target_entropy = target_entropy  # 目标熵的大小
         self.gamma = gamma
         self.tau = tau
@@ -93,7 +84,8 @@ class SAC:
             state = torch.FloatTensor([state]).to(self.device)
             action = self.actor(state)[0].squeeze(0).detach().cpu().numpy()
 
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return action
 
     def update(self, transition_dict):
@@ -198,11 +190,12 @@ agent = SAC(state_dim, hidden_dim, action_dim, action_bound,
             gamma, device, initial_random_steps)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_off_policy_agent(env, agent, num_episodes,
                                                replay_buffer, minimal_size,
                                                batch_size, update_interval,
                                                save_model=True)
 
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)

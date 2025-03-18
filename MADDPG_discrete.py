@@ -1,3 +1,4 @@
+import os
 import random
 
 import numpy as np
@@ -78,8 +79,8 @@ class MADDPG:
                            if self.total_step < self.initial_random_steps and not eval
                            else logits[i].argmax().item()
                        for i, agent in enumerate(self.env.agents)}
-
-        self.total_step += 1
+        if not eval:
+            self.total_step += 1
         return actions
 
     def update(self, transition_dict):
@@ -215,9 +216,9 @@ agent = MADDPG(env, n_agents, observation_dims, action_dims, critic_input_dim,
                initial_random_steps, tau, gamma, device)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     return_list = []
     eval_list = []
-    total_step = 0
     for i in range(10):
         with tqdm(total=int(num_episodes / 10), desc='Iteration %d' % i) as pbar:
             for i_episode in range(int(num_episodes / 10)):
@@ -234,7 +235,7 @@ if __name__ == '__main__':
                         [r for r in rewards.values()],
                         [no for no in next_obs.values()],
                         True in done.values() or True in truncated.values())
-                    if replay_buffer.size() > minimal_size and total_step % update_interval == 0:
+                    if replay_buffer.size() > minimal_size and agent.total_step % update_interval == 0:
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s,
                                            'actions': b_a,
@@ -244,17 +245,16 @@ if __name__ == '__main__':
                         agent.update(transition_dict)
 
                     episode_return += sum(rewards.values()) / n_agents
-                    total_step += 1
                 return_list.append(episode_return)
                 if (i_episode + 1) % 10 == 0:
-                    pbar.set_postfix({'total_step': '%d' % total_step,
+                    pbar.set_postfix({'total_step': '%d' % agent.total_step,
                                       'episode': '%d' % (num_episodes / 10 * i + i_episode + 1),
                                       'return': '%.3f' % np.mean(return_list[-10:])})
                 if (i_episode + 1) % 100 == 0:
                     eval_list.append(evaluate(agent, env, eval_episodes=10))
                 pbar.update(1)
             if save_model: agent.save()
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
-    utils.dump(f'./results/{alg_name}_eval.pkl', eval_list)
-    utils.show(f'./results/{alg_name}_eval.pkl', f'{alg_name} eval')
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.dump(f'results/{alg_name}/eval.pkl', eval_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)
+    utils.show(f'results/{alg_name}/eval.pkl', f'{alg_name} eval')

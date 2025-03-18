@@ -1,3 +1,4 @@
+import os
 import random
 
 import gymnasium as gym
@@ -45,12 +46,16 @@ class ActorCritic:
         self.gamma = gamma
         self.device = device
 
-    def take_action(self, state):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
-        probs = self.actor(state)
-        action_dist = torch.distributions.Categorical(probs)
-        action = action_dist.sample()
-        return action.item()
+    def take_action(self, state, eval=False):
+        with torch.no_grad():
+            state = torch.tensor([state], dtype=torch.float).to(self.device)
+            probs = self.actor(state)
+            if not eval:
+                action_dist = torch.distributions.Categorical(probs)
+                action = action_dist.sample().item()
+            else:
+                action = probs.argmax().item()
+        return action
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'],
@@ -102,7 +107,8 @@ agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
                     gamma, device)
 
 if __name__ == '__main__':
+    os.makedirs(f'results/{alg_name}', exist_ok=True)
     print(env_name)
     return_list = utils.train_on_policy_agent(env, agent, num_episodes)
-    utils.dump(f'./results/{alg_name}.pkl', return_list)
-    utils.show(f'./results/{alg_name}.pkl', alg_name)
+    utils.dump(f'results/{alg_name}/return.pkl', return_list)
+    utils.show(f'results/{alg_name}/return.pkl', alg_name)
